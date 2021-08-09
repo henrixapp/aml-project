@@ -37,6 +37,8 @@ print("Offices", len(offices))
 print("Housing",len(housing))
 print("Agents places",len(dfagentshomes))
 #print("nursing homes",len(nursing_home))
+both = dfagentshomes.append(transportation)
+both.to_file("data/combined.geojson", driver='GeoJSON')
 print("=== Setting up  ===")
 pts3 = transportation.geometry.unary_union
 # set the nearest points
@@ -67,10 +69,11 @@ for i,h in dfagentshomes.iterrows():
         age = np.random.randint(0,5)
         workplace = np.random.randint(0,len(dfagentshomes)-1)
         workplacePublicTransport = publicT[workplace]
-        it = Iterany(0,[ind,transpToInd[h["nearest_transport"]],workplacePublicTransport,transports+workplace],np.array([[0.6,0.4,0,0],
+        it = Iterany(0,[ind,transpToInd[h["nearest_transport"]],workplacePublicTransport,transports+workplace],
+        np.array([[0.9,0.1,0,0],
         [0.34,0.01,0.65,0],
         [0,0.65,0.01,0.34],
-        [0,0,0.6,.4]]))
+        [0,0,0.1,.9]]))
         state  =SUCEPTIBLE
         agents += [Agent(idh,0,age,state,it,0)]
         places[ind].agentsInState[state] += 1

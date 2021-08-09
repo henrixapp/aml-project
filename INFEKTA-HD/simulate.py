@@ -1,8 +1,11 @@
 from functools import total_ordering
 import pickle
+import geopandas
 import numpy as np
 from numpy.lib.function_base import place
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+
 # How Many ticks are there per hour?
 ticksPerHour = 1
 # TAKEN from infekta
@@ -58,11 +61,11 @@ class Place:
     def totalInfected(self):
         return np.sum(self.agentsInState[5:8])
     def dead(self):
-        return self.agentsState[0]
+        return self.agentsInState[0]
     def immune(self):
-        return self.agentsState[1]
+        return self.agentsInState[1]
     def recovered(self):
-        return self.agentsState[2]
+        return self.agentsInState[2]
     def suceptible(self):
         return self.agentsInState[3]
     def exposed(self):
@@ -100,10 +103,12 @@ class Agent:
         if self.state == SUCEPTIBLE:
             params = InfectParams
             numberOfContacts = places[self.iterany.placeID()].totalInfected()
+            totalAlives = places[self.iterany.placeID()].totalAlive()
             if numberOfContacts > 0:
                 # it does not matter yet, how many are infected TODO(henrik): number of infected
                 probability = np.random.uniform()
-                if probability < params['alpha'][self.age]:
+                #print("prob:",params['alpha'][self.age]*numberOfContacts/totalAlives)
+                if probability < params['alpha'][self.age]*numberOfContacts/totalAlives:
                     # print infected 
                     places[self.iterany.placeID()].agentsInState[self.state] -= 1
                     places[self.iterany.placeID()].agentsInState[EXPOSED] += 1
@@ -216,6 +221,28 @@ class Simulator:
         return np.sum([p.totalAlive() for p in self.places])
     def totalInfected(self):
         return np.sum([p.totalInfected() for p in self.places])
+    def render(self,geoj,tick):
+        geoj["infected"]=0
+        geoj["suseptible"]=0
+        geoj["exposed"]=0
+        geoj["recovered"]=0
+        for j in tqdm(range(len(self.places))):
+            i = self.places[j].nodeID
+            geoj.loc[i,"infected"] = self.places[j].totalInfected()
+            geoj.loc[i,"suseptible"] = self.places[j].suceptible()
+            geoj.loc[i,"exposed"] = self.places[j].exposed()
+            geoj.loc[i,"recovered"] = self.places[j].recovered()
+        fig, ((ax1, ax2),(ax3,ax4)) = plt.subplots(2, 2)
+        ax1.set_title("Infected")
+        geoj.plot(column='infected', ax=ax1, legend=True)
+        ax2.set_title("Suseptible")
+        geoj.plot(column='suseptible', ax=ax2, legend=True)
+        ax3.set_title("Exposed")
+        geoj.plot(column='exposed', ax=ax3, legend=True)
+        ax4.set_title("Recovered")
+        geoj.plot(column='recovered', ax=ax4, legend=True)
+        fig.savefig("render2/"+str(tick).zfill(5) + ".png", dpi=600, bbox_inches="tight")
+        plt.close()
 if __name__ == '__main__':
     agents_filehandler = open("data/agents.obj","rb")
     places_filehandler = open("data/places.obj","rb")
@@ -224,12 +251,15 @@ if __name__ == '__main__':
     agents[0].makeSick(places,0)
     sim = Simulator(agents,places)
     points = []
-    for i in range(24*120):
+    geoj = geopandas.read_file("data/combined.geojson")
+    geoj.set_index("id",inplace=True)
+    for i in range(24*60):
         sim.simulateTick()
         points += [sim.total()]
-        if i % (24*10):
+        if i % (24*10)==0:
             agents[np.random.randint(0,len(agents)-1)].makeSick(places,i)
-        if i % 12 == 0:
+        if i % 24 == 0:
+            sim.render(geoj,i)
             print(i/24)
             print(sim.total())
             print(sim.totalAlive()," > ",sim.totalInfected(), " (",sim.totalExposed(),")")
