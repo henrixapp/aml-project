@@ -5,7 +5,7 @@ import numpy as np
 from numpy.lib.function_base import place
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-
+import scipp as sc
 # How Many ticks are there per hour?
 ticksPerHour = 1
 # TAKEN from infekta
@@ -49,13 +49,15 @@ class Iterany:
         """
         return self.placesID[self.currentPos]
 class Place:
-    def __init__(self,placeId,nodeID) -> None:
+    def __init__(self,placeId,nodeID,x,y) -> None:
         """
         placeID is from 0... number of places, node ID for OSM
         """
         self.ID = placeId
         self.nodeID=nodeID
         self.agentsInState = np.array([0]*8)
+        self.x = x
+        self.y = y
     def totalAlive(self):
         return np.sum(self.agentsInState[1:])
     def totalInfected(self):
@@ -235,14 +237,53 @@ class Simulator:
         fig, ((ax1, ax2),(ax3,ax4)) = plt.subplots(2, 2)
         ax1.set_title("Infected")
         geoj.plot(column='infected', ax=ax1, legend=True)
-        ax2.set_title("Suseptible")
-        geoj.plot(column='suseptible', ax=ax2, legend=True)
+        ax2.set_title("Infected (binned)")
+        sc.plot(self.scbinned(self.infected_values()),resolution=25,ax=ax2)
         ax3.set_title("Exposed")
         geoj.plot(column='exposed', ax=ax3, legend=True)
-        ax4.set_title("Recovered")
-        geoj.plot(column='recovered', ax=ax4, legend=True)
+        ax4.set_title("Exposed (binned)")
+        sc.plot(self.scbinned(self.exposed_values()),resolution=25,ax=ax4)
+
         fig.savefig("render2/"+str(tick).zfill(5) + ".png", dpi=600, bbox_inches="tight")
         plt.close()
+    def dump(self,tick):
+        with open('dump/'+str(tick)+'.npy', 'wb') as f:
+            for z in range(8):
+                data1 = self.scbinned(self.values_at(z))
+                sum = data1.bins.sum()
+                data = np.zeros((39,39))
+                for i in range(39):
+                    for j in range(39):
+                        data[i][j]= sum['x',i]['y',j].values
+                np.save(f,z)
+    def x(self):
+        return [p.x for p in self.places]
+    def y(self):
+        return [p.y for p in self.places]
+    def values_at(self,z):
+        return [float(p.agentsInState[z]) for p in self.places]
+    def all_values(self):
+        return [np.array(p.agentsInState,dtype=np.float) for p in self.places]
+    def alive_values(self):
+        return [float(p.totalAlive()) for p in self.places]
+    def infected_values(self):
+        return [float(p.totalInfected()) for p in self.places]
+    def exposed_values(self):
+        return [float(p.exposed()) for p in self.places]
+    def scbinned(self,vals):
+        data = sc.DataArray(
+        data=sc.Variable(dims=['position'], unit=sc.units.counts, values=vals),
+        coords={
+            'position':sc.Variable(dims=['position'], values=['place-{}'.format(i) for i in range(len(self.places))]),
+            'x':sc.Variable(dims=['position'], unit=sc.units.m, values=self.x()),
+            'y':sc.Variable(dims=['position'], unit=sc.units.m, values=self.y())})
+        xbins = sc.Variable(dims=['x'], unit=sc.units.m, values=np.linspace(np.min(self.x()),np.max(self.x()),num=40))
+        ybins = sc.Variable(dims=['y'], unit=sc.units.m, values=np.linspace(np.min(self.y()),np.max(self.y()),num=40))
+        binned = sc.bin(data, edges=[ybins, xbins])
+        #sc.plot(binned.bins.sum())
+        # sc.plot(binned)
+        # plt.show()
+        return binned
 if __name__ == '__main__':
     agents_filehandler = open("data/agents.obj","rb")
     places_filehandler = open("data/places.obj","rb")
@@ -254,12 +295,12 @@ if __name__ == '__main__':
     geoj = geopandas.read_file("data/combined.geojson")
     geoj.set_index("id",inplace=True)
     for i in range(24*60):
+        sim.dump(i)
         sim.simulateTick()
         points += [sim.total()]
         if i % (24*10)==0:
             agents[np.random.randint(0,len(agents)-1)].makeSick(places,i)
         if i % 24 == 0:
-            sim.render(geoj,i)
             print(i/24)
             print(sim.total())
             print(sim.totalAlive()," > ",sim.totalInfected(), " (",sim.totalExposed(),")")

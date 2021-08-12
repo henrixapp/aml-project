@@ -15,8 +15,9 @@ def nearest(row, geom_union, df2, geom1_col='geometry', geom2_col='geometry', sr
 def set_nearest_transport(pts3, transportation,l):
     for i,h in tqdm(l.iterrows()):
         l.loc[i,"nearest_transport"] = nearest(h,pts3,transportation)
-df = geopandas.read_file("data/special.geojson")
-dfagentshomes = geopandas.read_file("data/buildings.geojson")
+df = geopandas.read_file("data/mannheim_special.geojson")
+dfagentshomes = geopandas.read_file("data/mannheim.geojson")
+
 #transportation
 transportation =  df[df["public_transport"]=="platform"].copy()
 #shopping and marketplaces
@@ -44,19 +45,18 @@ pts3 = transportation.geometry.unary_union
 # set the nearest points
 for l in [housing,shopping,colleges,offices,hospitals,dfagentshomes]: # TODO add nursing home
     set_nearest_transport(pts3,transportation,l)
-print(housing["nearest_transport"])
 fig, ax = plt.subplots(1, 1)
 ind = 0
 places = []
 transpToInd = {}
 for i, t in transportation.iterrows():
-    places += [Place(ind,t["id"])]
+    places += [Place(ind,t["id"],t["geometry"].centroid.x,t["geometry"].centroid.y)]
     transpToInd[t["id"]] = ind
     ind += 1
 transports = ind
 publicT = []
 for i,h in dfagentshomes.iterrows():
-    places += [Place(ind,h["id"])]
+    places += [Place(ind,h["id"],h["geometry"].centroid.x,h["geometry"].centroid.y)]
     publicT += [transpToInd[h["nearest_transport"]]]
     ind += 1
 agents = []
@@ -87,11 +87,11 @@ pickle.dump(places,places_filehandler)
 
 dfagentshomes.plot(column='nearest_transport', ax=ax)
 transportation["count"] =0
-transportation["count"]= transportation["id"].apply(lambda x: dfagentshomes[dfagentshomes["nearest_transport"]==x].count())
-transportation.plot(column='count', ax=ax, legend=True)
+#transportation["count"]= transportation["id"].apply(lambda x: dfagentshomes[dfagentshomes["nearest_transport"]==x].count())
+#transportation.plot(column='count', ax=ax, legend=True)
 
 
-plt.show()
+#plt.show()
 
 #print(h.hist(column="nearest_transport").dtype)
 #     print(near)
