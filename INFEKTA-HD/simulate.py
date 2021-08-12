@@ -255,7 +255,7 @@ class Simulator:
                 for i in range(39):
                     for j in range(39):
                         data[i][j]= sum['x',i]['y',j].values
-                np.save(f,z)
+                np.save(f,data)
     def x(self):
         return [p.x for p in self.places]
     def y(self):
