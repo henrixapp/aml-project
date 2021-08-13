@@ -248,14 +248,16 @@ class Simulator:
         plt.close()
     def dump(self,tick):
         with open('dump/'+str(tick)+'.npy', 'wb') as f:
+            arr = []
             for z in range(8):
                 data1 = self.scbinned(self.values_at(z))
                 sum = data1.bins.sum()
-                data = np.zeros((39,39))
-                for i in range(39):
-                    for j in range(39):
+                data = np.zeros((128,128))
+                for i in range(128):
+                    for j in range(128):
                         data[i][j]= sum['x',i]['y',j].values
-                np.save(f,data)
+                arr += [data]
+            np.save(f,np.array(arr))
     def x(self):
         return [p.x for p in self.places]
     def y(self):
@@ -277,8 +279,8 @@ class Simulator:
             'position':sc.Variable(dims=['position'], values=['place-{}'.format(i) for i in range(len(self.places))]),
             'x':sc.Variable(dims=['position'], unit=sc.units.m, values=self.x()),
             'y':sc.Variable(dims=['position'], unit=sc.units.m, values=self.y())})
-        xbins = sc.Variable(dims=['x'], unit=sc.units.m, values=np.linspace(np.min(self.x()),np.max(self.x()),num=40))
-        ybins = sc.Variable(dims=['y'], unit=sc.units.m, values=np.linspace(np.min(self.y()),np.max(self.y()),num=40))
+        xbins = sc.Variable(dims=['x'], unit=sc.units.m, values=np.linspace(np.min(self.x()),np.max(self.x()),num=129))
+        ybins = sc.Variable(dims=['y'], unit=sc.units.m, values=np.linspace(np.min(self.y()),np.max(self.y()),num=129))
         binned = sc.bin(data, edges=[ybins, xbins])
         #sc.plot(binned.bins.sum())
         # sc.plot(binned)
