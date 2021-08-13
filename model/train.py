@@ -18,7 +18,7 @@ from torch.utils.tensorboard import SummaryWriter
 from dataloader import InfektaDataset
 from torch.utils.data import DataLoader, random_split
 
-dir_img = "../INFEKTA-HD/dump/"
+dir_img = "../INFEKTA-HD/dump777/"
 dir_mask = 'data/masks/'
 dir_checkpoint = 'checkpoints/'
 
