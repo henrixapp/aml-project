@@ -24,8 +24,7 @@ def eval_net(net, loader, device):
             if net.n_classes > 1:
                 tot += F.mse_loss(mask_pred, true_masks).item()
             else:
-                pred = torch.sigmoid(mask_pred)
-                pred = (pred > 0.5).float()
+                pred = F.relu(mask_pred)
                 tot += dice_coeff(pred, true_masks).item()
             pbar.update()
 

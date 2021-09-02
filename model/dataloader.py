@@ -12,20 +12,27 @@ import numpy as np
 class InfektaDataset(Dataset):
     def __init__(self, img_dir,transform=None, target_transform=None):
         self.img_dir = img_dir
-        self.files = glob.glob(img_dir+"/*")
-        print(len(self.files))
+        self.folders = glob.glob(img_dir+"/*")
+        print(self.folders)
+        self.folders_count = len(self.folders)
+        self.sample_per_folder = len(glob.glob(self.folders[0]+"/*"))-1
+        self.people_count = np.sum(np.load(glob.glob(self.folders[0]+"/*")[0]))
+        self.people_factor = 1.0/self.people_count
+        print(self.people_count)
+        print(self.sample_per_folder)
         self.transform = transform
         self.target_transform = target_transform
 
     def __len__(self):
-        return len(self.files)-1
+        return self.folders_count*self.sample_per_folder
+    def __getitem__(self, idxn):
+        idx = idxn % self.sample_per_folder
+        idc = int(idxn / self.sample_per_folder)
+        img_path = os.path.join(self.folders[idc], str(idx)+".npy")
+        img_path1 = os.path.join(self.folders[idc], str(idx+1)+".npy")
 
-    def __getitem__(self, idx):
-        img_path = os.path.join(self.img_dir, str(idx)+".npy")
-        img_path1 = os.path.join(self.img_dir, str(idx+1)+".npy")
-
-        image = np.load(img_path)
-        target = np.load(img_path1)
+        image = np.load(img_path)*self.people_factor
+        target = np.load(img_path1)*self.people_factor
         if self.transform:
             image = self.transform(image)
         if self.target_transform:

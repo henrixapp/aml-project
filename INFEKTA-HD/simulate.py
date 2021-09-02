@@ -6,6 +6,9 @@ from numpy.lib.function_base import place
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import scipp as sc
+import time
+import os, datetime
+
 # How Many ticks are there per hour?
 ticksPerHour = 1
 # TAKEN from infekta
@@ -191,8 +194,13 @@ class Agent:
     def currentPlace(self,places):
         return places[self.iterany.placeID()]
     def travel(self,places ,tick):
-        places[self.iterany.placeID()].agentsInState[self.state] -= 1
-        places[self.iterany.nextPosition(tick)].agentsInState[self.state] += 1
+        if self.state in [DEAD,SERIOUSLY,CRITICAL]:
+            places[self.iterany.placeID()].agentsInState[self.state] -= 1
+            places[self.homeID].agentsInState[self.state] += 1
+            self.iterany.currentPos = 0 # stay home
+        else:
+            places[self.iterany.placeID()].agentsInState[self.state] -= 1
+            places[self.iterany.nextPosition(tick)].agentsInState[self.state] += 1
 class Simulator:
     def __init__(self,agents, places) -> None:
         self.agents = agents
@@ -246,8 +254,8 @@ class Simulator:
 
         fig.savefig("render2/"+str(tick).zfill(5) + ".png", dpi=600, bbox_inches="tight")
         plt.close()
-    def dump(self,tick):
-        with open('dump/'+str(tick)+'.npy', 'wb') as f:
+    def dump(self,tick,outdir):
+        with open(outdir+'/'+str(tick)+'.npy', 'wb') as f:
             arr = []
             for z in range(8):
                 data1 = self.scbinned(self.values_at(z))
@@ -287,17 +295,20 @@ class Simulator:
         # plt.show()
         return binned
 if __name__ == '__main__':
+    mydir = f"data/runs/{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+    os.makedirs(mydir)
+    np.random.seed(int(time.time()))
     agents_filehandler = open("data/agents.obj","rb")
     places_filehandler = open("data/places.obj","rb")
     agents = pickle.load(agents_filehandler)
     places = pickle.load(places_filehandler)
-    agents[0].makeSick(places,0)
+    #agents[0].makeSick(places,0)
     sim = Simulator(agents,places)
     points = []
     geoj = geopandas.read_file("data/combined.geojson")
     geoj.set_index("id",inplace=True)
     for i in range(24*60):
-        sim.dump(i)
+        sim.dump(i,mydir)
         sim.simulateTick()
         points += [sim.total()]
         if i % (24*10)==0:
