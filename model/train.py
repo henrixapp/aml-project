@@ -22,7 +22,7 @@ dir_img = "../INFEKTA-HD/data/runs16/"
 dir_mask = 'data/masks/'
 dir_checkpoint = 'checkpoints/'
 IMAGE_SIZE = 16
-
+FRAME_COUNT = 23
 def train_net(net,
               device,
               epochs=5,
@@ -32,7 +32,7 @@ def train_net(net,
               save_cp=True,
               img_scale=0.5):
 
-    dataset = InfektaDataset(dir_img)
+    dataset = InfektaDataset(dir_img,FRAME_COUNT)
     n_val = int(len(dataset) * val_percent)
     n_train = len(dataset) - n_val
     train, val = random_split(dataset, [n_train, n_val])
@@ -160,7 +160,7 @@ if __name__ == '__main__':
     #   - For 1 class and background, use n_classes=1
     #   - For 2 classes, use n_classes=1
     #   - For N > 2 classes, use n_classes=N
-    net = UNet(n_channels=4*8, n_classes=8, bilinear=True)
+    net = UNet(n_channels=FRAME_COUNT*8, n_classes=8, bilinear=True)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n'

@@ -14,6 +14,7 @@ from model import UNet
 #from utils.data_vis import plot_img_and_mask
 from dataloader import InfektaDataset
 IMAGE_SIZE = 16
+FRAMES_COUNT = 23
 def predict_img(net,
                 full_img,
                 device,
@@ -95,7 +96,7 @@ if __name__ == "__main__":
     in_files = args.input
     out_files = get_output_filenames(args)
 
-    net = UNet(n_channels=4*8, n_classes=8)
+    net = UNet(n_channels=FRAMES_COUNT*8, n_classes=8)
 
     logging.info("Loading model {}".format(args.model))
 
@@ -111,15 +112,14 @@ if __name__ == "__main__":
         j= 1
         img = np.load(fn+str(j+0)+".npy")
         factor = 1.0/np.sum(img)
-        img1 = np.load(fn+str(j+1)+".npy")
-        img2 = np.load(fn+str(j+2)+".npy")
-        img3 = np.load(fn+str(j+3)+".npy")
-        
+        ims = []
+        for k in range(FRAMES_COUNT):
+            img1 = np.load(fn+str(j+k)+".npy")*factor
+            ims += [img1]
         timeseries = []
         frames = []
-        ims = [img*factor,img1*factor,img2*factor,img3*factor]
         for i in range(60*24):
-            img4  = np.vstack(ims[len(ims)-4:])
+            img4  = np.vstack(ims[len(ims)-FRAMES_COUNT:])
             print(np.sum(img4))
             mask = predict_img(net=net,
                             full_img=img4,
