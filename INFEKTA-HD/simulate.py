@@ -266,12 +266,30 @@ class Simulator:
                         data[i][j]= sum['x',i]['y',j].values
                 arr += [data]
             np.save(f,np.array(arr))
+    def dump2(self,tick,outdir):
+        with open(outdir+'/'+str(tick)+'.npy', 'wb') as f:
+            arr = []
+            for z in range(8):
+                data1 = self.scbinned2(self.values_at2(z))
+                sum = data1.bins.sum()
+                data = np.zeros((16,16))
+                for i in range(16):
+                    for j in range(16):
+                        data[i][j]= sum['x',i]['y',j].values
+                arr += [data]
+            np.save(f,np.array(arr))
     def x(self):
         return [p.x for p in self.places]
     def y(self):
         return [p.y for p in self.places]
+    def x_home(self):
+        return [self.places[a.homeID].x for a in self.agents]
+    def y_home(self):
+        return [self.places[a.homeID].y for a in self.agents]
     def values_at(self,z):
         return [float(p.agentsInState[z]) for p in self.places]
+    def values_at2(self,z):
+        return [float(a.state==z) for a in self.agents]
     def all_values(self):
         return [np.array(p.agentsInState,dtype=np.float) for p in self.places]
     def alive_values(self):
@@ -290,12 +308,20 @@ class Simulator:
         xbins = sc.Variable(dims=['x'], unit=sc.units.m, values=np.linspace(np.min(self.x()),np.max(self.x()),num=129))
         ybins = sc.Variable(dims=['y'], unit=sc.units.m, values=np.linspace(np.min(self.y()),np.max(self.y()),num=129))
         binned = sc.bin(data, edges=[ybins, xbins])
-        #sc.plot(binned.bins.sum())
-        # sc.plot(binned)
-        # plt.show()
+        return binned
+    def scbinned2(self,vals):
+        data = sc.DataArray(
+        data=sc.Variable(dims=['position'], unit=sc.units.counts, values=vals),
+        coords={
+            'position':sc.Variable(dims=['position'], values=['place-{}'.format(i) for i in range(len(self.agents))]),
+            'x':sc.Variable(dims=['position'], unit=sc.units.m, values=self.x_home()),
+            'y':sc.Variable(dims=['position'], unit=sc.units.m, values=self.y_home())})
+        xbins = sc.Variable(dims=['x'], unit=sc.units.m, values=np.linspace(np.min(self.x()),np.max(self.x()),num=17))
+        ybins = sc.Variable(dims=['y'], unit=sc.units.m, values=np.linspace(np.min(self.y()),np.max(self.y()),num=17))
+        binned = sc.bin(data, edges=[ybins, xbins])
         return binned
 if __name__ == '__main__':
-    mydir = f"data/runs/{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+    mydir = f"data/runs16/{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
     os.makedirs(mydir)
     np.random.seed(int(time.time()))
     agents_filehandler = open("data/agents.obj","rb")
@@ -308,7 +334,7 @@ if __name__ == '__main__':
     geoj = geopandas.read_file("data/combined.geojson")
     geoj.set_index("id",inplace=True)
     for i in range(24*60):
-        sim.dump(i,mydir)
+        sim.dump2(i,mydir)
         sim.simulateTick()
         points += [sim.total()]
         if i % (24*10)==0:

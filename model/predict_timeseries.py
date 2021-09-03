@@ -13,7 +13,7 @@ from matplotlib.widgets import Slider, Button
 from model import UNet
 #from utils.data_vis import plot_img_and_mask
 from dataloader import InfektaDataset
-
+IMAGE_SIZE = 16
 def predict_img(net,
                 full_img,
                 device,
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     in_files = args.input
     out_files = get_output_filenames(args)
 
-    net = UNet(n_channels=8, n_classes=8)
+    net = UNet(n_channels=4*8, n_classes=8)
 
     logging.info("Loading model {}".format(args.model))
 
@@ -108,21 +108,28 @@ if __name__ == "__main__":
 
     for i, fn in enumerate(in_files):
         logging.info("\nPredicting image {} ...".format(fn))
-
-        img = np.load(fn)
-        img = img/np.sum(img)
+        j= 1
+        img = np.load(fn+str(j+0)+".npy")
+        factor = 1.0/np.sum(img)
+        img1 = np.load(fn+str(j+1)+".npy")
+        img2 = np.load(fn+str(j+2)+".npy")
+        img3 = np.load(fn+str(j+3)+".npy")
+        
         timeseries = []
         frames = []
+        ims = [img*factor,img1*factor,img2*factor,img3*factor]
         for i in range(60*24):
-            img = img/np.sum(img)
-            print(np.sum(img))
+            img4  = np.vstack(ims[len(ims)-4:])
+            print(np.sum(img4))
             mask = predict_img(net=net,
-                            full_img=img,
+                            full_img=img4,
                             scale_factor=args.scale,
                             out_threshold=args.mask_threshold,
                             device=device)
-            frames += [np.sum(mask,axis=0)]
-            timeseries += [[np.sum(j) for j in mask ]]
+            print(np.sum(mask))
+            ims += [mask/np.sum(mask)]
+            frames += [np.reshape(mask/np.sum(mask),(IMAGE_SIZE*8,IMAGE_SIZE))]
+            timeseries += [[np.sum(j)/np.sum(mask) for j in mask ]]
             img = mask
         fig, ax = plt.subplots()
         lines = plt.plot(range(len(timeseries)),timeseries)

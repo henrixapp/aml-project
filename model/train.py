@@ -18,10 +18,10 @@ from torch.utils.tensorboard import SummaryWriter
 from dataloader import InfektaDataset
 from torch.utils.data import DataLoader, random_split
 
-dir_img = "../INFEKTA-HD/data/runs/"
+dir_img = "../INFEKTA-HD/data/runs16/"
 dir_mask = 'data/masks/'
 dir_checkpoint = 'checkpoints/'
-
+IMAGE_SIZE = 16
 
 def train_net(net,
               device,
@@ -109,9 +109,9 @@ def train_net(net,
                         writer.add_scalar('Dice/test', val_score, global_step)
                     #images = imgs
                     # TODO(add images)
-                    images = torch.sum(imgs,dim=1,keepdim=True)
-                    images = torch.reshape(imgs,(1,1,8*128,128))
-                    writer.add_images('images', images, global_step)
+                    #images = torch.sum(imgs,dim=1,keepdim=True)
+                    #images = torch.reshape(imgs,(1,1,8*IMAGE_SIZE,IMAGE_SIZE))
+                    #writer.add_images('images', images, global_step)
                     if net.n_classes == 1:
                         writer.add_images('masks/true', true_masks, global_step)
                         writer.add_images('masks/pred', torch.sigmoid(masks_pred) > 0.5, global_step)
@@ -160,7 +160,7 @@ if __name__ == '__main__':
     #   - For 1 class and background, use n_classes=1
     #   - For 2 classes, use n_classes=1
     #   - For N > 2 classes, use n_classes=N
-    net = UNet(n_channels=8, n_classes=8, bilinear=True)
+    net = UNet(n_channels=4*8, n_classes=8, bilinear=True)
     logging.info(f'Network:\n'
                  f'\t{net.n_channels} input channels\n'
                  f'\t{net.n_classes} output channels (classes)\n'
