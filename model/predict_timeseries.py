@@ -14,7 +14,7 @@ from model import UNet
 #from utils.data_vis import plot_img_and_mask
 from dataloader import InfektaDataset
 IMAGE_SIZE = 16
-FRAMES_COUNT = 23
+FRAMES_COUNT = 120
 def predict_img(net,
                 full_img,
                 device,
@@ -109,16 +109,24 @@ if __name__ == "__main__":
 
     for i, fn in enumerate(in_files):
         logging.info("\nPredicting image {} ...".format(fn))
-        j= 1
+        j= 600
         img = np.load(fn+str(j+0)+".npy")
         factor = 1.0/np.sum(img)
+        print(factor)
         ims = []
+        timeseries = []
+        #ims = [img*factor for i in range(FRAMES_COUNT)]
+        for k in range(j):
+            img1 = np.load(fn+str(k)+".npy")*factor
+            ims += [img1]
+            timeseries += [[np.sum(j) for j in img1 ]]
         for k in range(FRAMES_COUNT):
             img1 = np.load(fn+str(j+k)+".npy")*factor
             ims += [img1]
-        timeseries = []
+            timeseries += [[np.sum(j) for j in img1 ]]
         frames = []
-        for i in range(60*24):
+        for i in range(60*24-FRAMES_COUNT):
+            print(len(ims)-FRAMES_COUNT)
             img4  = np.vstack(ims[len(ims)-FRAMES_COUNT:])
             print(np.sum(img4))
             mask = predict_img(net=net,
@@ -127,12 +135,13 @@ if __name__ == "__main__":
                             out_threshold=args.mask_threshold,
                             device=device)
             print(np.sum(mask))
-            ims += [mask/np.sum(mask)]
+            factor = 1.0/np.sum(mask)
+            ims += [mask*factor]
             frames += [np.reshape(mask/np.sum(mask),(IMAGE_SIZE*8,IMAGE_SIZE))]
             timeseries += [[np.sum(j)/np.sum(mask) for j in mask ]]
             img = mask
         fig, ax = plt.subplots()
-        lines = plt.plot(range(len(timeseries)),timeseries)
+        lines = plt.plot([k-j-FRAMES_COUNT for k in range(len(timeseries))],timeseries)
         plt.legend(lines,["DEAD","IMMUNE","RECOVERED","SUSCEPTIBLE","EXPOSED","ASYMPTOTIC","SERIOUSLY","CRITICAL"])
         # adjust the main plot to make room for the sliders
         plt.subplots_adjust(left=0.25, bottom=0.25)
