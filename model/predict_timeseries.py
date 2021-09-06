@@ -15,6 +15,8 @@ from model import UNet
 from dataloader import InfektaDataset
 IMAGE_SIZE = 16
 FRAMES_COUNT = 120
+torch.set_default_dtype(torch.float64)
+
 def predict_img(net,
                 full_img,
                 device,
@@ -25,7 +27,7 @@ def predict_img(net,
     img = torch.from_numpy(full_img)
 
     img = img.unsqueeze(0)
-    img = img.to(device=device, dtype=torch.float32)
+    img = img.to(device=device, dtype=torch.float64)
 
     with torch.no_grad():
         output = net(img)
@@ -100,7 +102,8 @@ if __name__ == "__main__":
 
     logging.info("Loading model {}".format(args.model))
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')
     logging.info(f'Using device {device}')
     net.to(device=device)
     net.load_state_dict(torch.load(args.model, map_location=device))

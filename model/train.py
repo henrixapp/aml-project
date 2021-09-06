@@ -8,6 +8,9 @@ import sys
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+
 from torch import optim
 from tqdm import tqdm
 
@@ -20,9 +23,23 @@ from torch.utils.data import DataLoader, random_split
 
 dir_img = "../INFEKTA-HD/data/runs16/"
 dir_mask = 'data/masks/'
-dir_checkpoint = 'checkpoints/'
+FRAME_COUNT = 120
+dir_checkpoint = 'checkpoints'+str(FRAME_COUNT)+'/'
 IMAGE_SIZE = 16
-FRAME_COUNT = 23
+torch.set_default_dtype(torch.float64)
+class CustomLoss(nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(CustomLoss, self).__init__()
+        self.mse_loss = nn.MSELoss()
+ 
+    def forward(self, inputs, targets, smooth=1):        
+        #print(inputs.shape)
+        #print(targets.shape)
+        #inputs = F.relu(inputs)       
+        output = self.mse_loss(inputs, targets)
+        #print(output)  
+        #print(0.001*torch.abs(1- torch.sum(inputs)/inputs.shape[0]))      
+        return output+ 0.0001*torch.abs(1- torch.sum(inputs)/inputs.shape[0])
 def train_net(net,
               device,
               epochs=5,
@@ -56,7 +73,7 @@ def train_net(net,
     optimizer = optim.RMSprop(net.parameters(), lr=lr, weight_decay=1e-8, momentum=0.9)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min' if net.n_classes > 1 else 'max', patience=2)
     if net.n_classes > 1:
-        criterion = nn.MSELoss()
+        criterion = CustomLoss()
     else:
         criterion = nn.BCEWithLogitsLoss()
 
@@ -66,16 +83,16 @@ def train_net(net,
         epoch_loss = 0
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img') as pbar:
             for batch in train_loader:
-                imgs = batch[0].float()
-                true_masks = batch[1].float()
+                imgs = batch[0].double()
+                true_masks = batch[1].double()
                 assert imgs.shape[1] == net.n_channels, \
                     f'Network has been defined with {net.n_channels} input channels, ' \
                     f'but loaded images have {imgs.shape[1]} channels. Please check that ' \
                     'the images are loaded correctly.'
 
-                imgs = imgs.to(device=device, dtype=torch.float32)
+                imgs = imgs.to(device=device, dtype=torch.float64)
                 #mask_type = torch.float32 if net.n_classes == 1 else torch.long
-                mask_type = torch.float32
+                mask_type = torch.float64
                 true_masks = true_masks.to(device=device, dtype=mask_type)
 
                 masks_pred = net(imgs)

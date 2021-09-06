@@ -18,7 +18,7 @@ freq_slider = Slider(
     valinit=1,
 )
 def update(val):
-    frame = np.load("../INFEKTA-HD/data/runs16/2021-09-03_10-52-28/"+str(int(val))+".npy")
+    frame = np.load("../INFEKTA-HD/data/runs16/2021-09-04_12-37-20/"+str(int(val))+".npy")
     for i in range(8):
         #fig, ax = figs
         ax[i%2,int(i/2)].imshow(frame[i]*9000)
