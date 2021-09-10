@@ -14,7 +14,7 @@ class InfektaDataset(Dataset):
     def __init__(self, img_dir,time_frames_count, transform=None, target_transform=None):
         self.img_dir = img_dir
         self.folders = glob.glob(img_dir+"/*")
-        print(self.folders)
+        print("Number of runs:",len(self.folders))
         self.folders_count = len(self.folders)
         self.time_frames_count = time_frames_count
         self.sample_per_folder = len(glob.glob(self.folders[0]+"/*"))-time_frames_count-1
@@ -54,7 +54,6 @@ class InfektaDataset(Dataset):
         return imgs, target
 if __name__ =="__main__":
     infekta = InfektaDataset("../INFEKTA-HD/data/runs16/",2)
-    print(infekta[0][0].shape)
-    print(infekta[0][1].shape)
+    print(len(infekta))
 
     #matplotlib.image.imsave(str(0).zfill(5) + ".png", infekta[7][0][3])
