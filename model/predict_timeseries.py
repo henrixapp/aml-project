@@ -13,6 +13,8 @@ from matplotlib.widgets import Slider, Button
 from model import UNet
 #from utils.data_vis import plot_img_and_mask
 from dataloader import InfektaDataset
+from tqdm import tqdm
+
 IMAGE_SIZE = 16
 FRAMES_COUNT = 120
 torch.set_default_dtype(torch.float64)
@@ -112,8 +114,9 @@ if __name__ == "__main__":
 
     for i, fn in enumerate(in_files):
         logging.info("\nPredicting image {} ...".format(fn))
-        j= 600
+        j= 250
         img = np.load(fn+str(j+0)+".npy")
+        people = np.sum(img)
         factor = 1.0/np.sum(img)
         print(factor)
         ims = []
@@ -122,27 +125,32 @@ if __name__ == "__main__":
         for k in range(j):
             img1 = np.load(fn+str(k)+".npy")*factor
             ims += [img1]
-            timeseries += [[np.sum(j) for j in img1 ]]
+            timeseries += [[np.sum(np.floor(j*people)) for j in img1 ]]
         for k in range(FRAMES_COUNT):
             img1 = np.load(fn+str(j+k)+".npy")*factor
             ims += [img1]
-            timeseries += [[np.sum(j) for j in img1 ]]
+            timeseries += [[np.sum(np.floor(j*people)) for j in img1 ]]
         frames = []
-        for i in range(60*24-FRAMES_COUNT):
-            print(len(ims)-FRAMES_COUNT)
+        fig, ax = plt.subplots()
+        lines = ax.plot([k-j-FRAMES_COUNT for k in range(len(timeseries))],timeseries)
+        ax.legend(lines,["DEAD","IMMUNE","RECOVERED","SUSCEPTIBLE","EXPOSED","ASYMPTOTIC","SERIOUSLY","CRITICAL"])
+        plt.show(block=False)
+        for i in tqdm(range(60*24-FRAMES_COUNT)):
             img4  = np.vstack(ims[len(ims)-FRAMES_COUNT:])
-            print(np.sum(img4))
             mask = predict_img(net=net,
                             full_img=img4,
                             scale_factor=args.scale,
                             out_threshold=args.mask_threshold,
                             device=device)
-            print(np.sum(mask))
             factor = 1.0/np.sum(mask)
             ims += [mask*factor]
             frames += [np.reshape(mask/np.sum(mask),(IMAGE_SIZE*8,IMAGE_SIZE))]
-            timeseries += [[np.sum(j)/np.sum(mask) for j in mask ]]
+            timeseries += [[np.sum(np.floor((j/np.sum(mask))*people)) for j in mask ]]
             img = mask
+            #ax.plot([k-j-FRAMES_COUNT for k in range(len(timeseries))],timeseries)
+            #fig.canvas.draw_idle()
+            #plt.pause(.001)
+            
         fig, ax = plt.subplots()
         lines = plt.plot([k-j-FRAMES_COUNT for k in range(len(timeseries))],timeseries)
         plt.legend(lines,["DEAD","IMMUNE","RECOVERED","SUSCEPTIBLE","EXPOSED","ASYMPTOTIC","SERIOUSLY","CRITICAL"])
@@ -161,7 +169,7 @@ if __name__ == "__main__":
         )
         def update(val):
             frame = frames[int(val)]
-            ax.imshow(frame*9000)
+            ax.imshow(frame)
             fig.canvas.draw_idle()
         freq_slider.on_changed(update)
         plt.show()
