@@ -5,6 +5,12 @@ import matplotlib.pyplot as plt
 import pickle
 from simulate import Place, Agent, Iterany, SUCEPTIBLE
 import numpy as np
+
+# Change here if needed
+
+SPECIAL_BUILDINGS_FILE= "data/berlin_special.geojson"
+ALL_BUILDINGS_FILE = "data/berlin.geojson"
+
 def nearest(row, geom_union, df2, geom1_col='geometry', geom2_col='geometry', src_column=None):
     """Find the nearest point and return the corresponding value from specified column."""
     # Find the geometry that is closest
@@ -15,8 +21,8 @@ def nearest(row, geom_union, df2, geom1_col='geometry', geom2_col='geometry', sr
 def set_nearest_transport(pts3, transportation,l):
     for i,h in tqdm(l.iterrows()):
         l.loc[i,"nearest_transport"] = nearest(h,pts3,transportation)
-df = geopandas.read_file("data/mannheim_special.geojson")
-dfagentshomes = geopandas.read_file("data/mannheim.geojson")
+df = geopandas.read_file(SPECIAL_BUILDINGS_FILE)
+dfagentshomes = geopandas.read_file(ALL_BUILDINGS_FILE)
 
 #transportation
 transportation =  df[df["public_transport"]=="platform"].copy()

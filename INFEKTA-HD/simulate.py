@@ -321,28 +321,29 @@ class Simulator:
         binned = sc.bin(data, edges=[ybins, xbins])
         return binned
 if __name__ == '__main__':
-    mydir = f"data/runs16/{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
-    os.makedirs(mydir)
-    np.random.seed(int(time.time()))
-    agents_filehandler = open("data/agents.obj","rb")
-    places_filehandler = open("data/places.obj","rb")
-    agents = pickle.load(agents_filehandler)
-    places = pickle.load(places_filehandler)
-    #agents[0].makeSick(places,0)
-    sim = Simulator(agents,places)
-    points = []
-    geoj = geopandas.read_file("data/combined.geojson")
-    geoj.set_index("id",inplace=True)
-    for i in range(24*60):
-        sim.dump2(i,mydir)
-        sim.simulateTick()
-        points += [sim.total()]
-        if i % (24*10)==0:
-            agents[np.random.randint(0,len(agents)-1)].makeSick(places,i)
-        if i % 24 == 0:
-            print(i/24)
-            print(sim.total())
-            print(sim.totalAlive()," > ",sim.totalInfected(), " (",sim.totalExposed(),")")
-    lines = plt.plot(range(len(points)),points)
-    plt.legend(lines,["DEAD","IMMUNE","RECOVERED","SUSCEPTIBLE","EXPOSED","ASYMPTOTIC","SERIOUSLY","CRITICAL"])
-    plt.show()
+    for o in range(50):
+        mydir = f"data/runs16/{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
+        os.makedirs(mydir)
+        np.random.seed(int(time.time()))
+        agents_filehandler = open("data/agents.obj","rb")
+        places_filehandler = open("data/places.obj","rb")
+        agents = pickle.load(agents_filehandler)
+        places = pickle.load(places_filehandler)
+        #agents[0].makeSick(places,0)
+        sim = Simulator(agents,places)
+        points = []
+        #geoj = geopandas.read_file("data/combined.geojson")
+        #geoj.set_index("id",inplace=True)
+        for i in range(24*60):
+            sim.dump2(i,mydir)
+            sim.simulateTick()
+            points += [sim.total()]
+            if i % (24*10)==0:
+                agents[np.random.randint(0,len(agents)-1)].makeSick(places,i)
+            if i % 24 == 0:
+                print(i/24)
+                print(sim.total())
+                print(sim.totalAlive()," > ",sim.totalInfected(), " (",sim.totalExposed(),")")
+    #lines = plt.plot(range(len(points)),points)
+    #plt.legend(lines,["DEAD","IMMUNE","RECOVERED","SUSCEPTIBLE","EXPOSED","ASYMPTOTIC","SERIOUSLY","CRITICAL"])
+    #plt.show()

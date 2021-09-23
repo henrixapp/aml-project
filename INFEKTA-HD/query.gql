@@ -4,8 +4,8 @@ The original search was:
 “university or wochenmarkt in Heidelberg”
 */
 [out:json][timeout:25];
-// fetch area “Heidelberg” to search in
-{{geocodeArea:Heidelberg}}->.searchArea;
+// fetch area “Mannheim-Quadrate” to search in
+{{geocodeArea:Mannheim-Quadrate}}->.searchArea;
 // gather results
 (
   //get places where people are meeting

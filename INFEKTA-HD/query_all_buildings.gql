@@ -4,8 +4,8 @@ The original search was:
 “"gebäude" in Idstein”
 */
 [out:json][timeout:25];
-// fetch area “Idstein” to search in
-{{geocodeArea:Idstein}}->.searchArea;
+// fetch area “Mannheim Quadartate” to search in
+{{geocodeArea:Mannheim-Quadrate}}->.searchArea;
 // gather results
 (
   // query part for: “"gebäude"”

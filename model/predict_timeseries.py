@@ -17,6 +17,7 @@ from tqdm import tqdm
 
 IMAGE_SIZE = 16
 FRAMES_COUNT = 120
+START_TIME = 480
 torch.set_default_dtype(torch.float64)
 
 def predict_img(net,
@@ -114,29 +115,34 @@ if __name__ == "__main__":
 
     for i, fn in enumerate(in_files):
         logging.info("\nPredicting image {} ...".format(fn))
-        j= 250
+        j= START_TIME
         img = np.load(fn+str(j+0)+".npy")
         people = np.sum(img)
         factor = 1.0/np.sum(img)
         print(factor)
         ims = []
         timeseries = []
+        timeseries2 = []
+        #infekta = InfektaDataset("../INFEKTA-HD/data/runs16/",FRAMES_COUNT)
+
         #ims = [img*factor for i in range(FRAMES_COUNT)]
+        for k in range(24*60):
+            img1 = np.load(fn+str(k)+".npy")*factor
+            ims += [img1]
+            timeseries2 += [[np.sum(j) for j in img1 ]]
         for k in range(j):
             img1 = np.load(fn+str(k)+".npy")*factor
             ims += [img1]
-            timeseries += [[np.sum(np.floor(j*people)) for j in img1 ]]
+            timeseries += [[np.sum(j) for j in img1 ]]
         for k in range(FRAMES_COUNT):
             img1 = np.load(fn+str(j+k)+".npy")*factor
-            ims += [img1]
-            timeseries += [[np.sum(np.floor(j*people)) for j in img1 ]]
+            ims += [img1/np.sum(img1)]
+            timeseries += [[np.sum(j) for j in img1 ]]
         frames = []
-        fig, ax = plt.subplots()
-        lines = ax.plot([k-j-FRAMES_COUNT for k in range(len(timeseries))],timeseries)
-        ax.legend(lines,["DEAD","IMMUNE","RECOVERED","SUSCEPTIBLE","EXPOSED","ASYMPTOTIC","SERIOUSLY","CRITICAL"])
-        plt.show(block=False)
-        for i in tqdm(range(60*24-FRAMES_COUNT)):
-            img4  = np.vstack(ims[len(ims)-FRAMES_COUNT:])
+        actual = []
+        for i in tqdm(range((60*24-FRAMES_COUNT-j))):
+            img4  = np.vstack(ims[len(ims)-FRAMES_COUNT:]) #infekta[i][0]
+            #print(np.sum(img4))
             mask = predict_img(net=net,
                             full_img=img4,
                             scale_factor=args.scale,
@@ -145,15 +151,21 @@ if __name__ == "__main__":
             factor = 1.0/np.sum(mask)
             ims += [mask*factor]
             frames += [np.reshape(mask/np.sum(mask),(IMAGE_SIZE*8,IMAGE_SIZE))]
-            timeseries += [[np.sum(np.floor((j/np.sum(mask))*people)) for j in mask ]]
+            timeseries += [[np.sum(j/factor) for j in mask ]]
+            
+            #print([np.sum(j) for j in mask ])
+            #print(np.sum(np.abs(np.array([np.sum(j) for j in infekta[i][1] ])-np.array([np.sum(j) for j in mask ]))))
             img = mask
             #ax.plot([k-j-FRAMES_COUNT for k in range(len(timeseries))],timeseries)
             #fig.canvas.draw_idle()
             #plt.pause(.001)
             
         fig, ax = plt.subplots()
-        lines = plt.plot([k-j-FRAMES_COUNT for k in range(len(timeseries))],timeseries)
-        plt.legend(lines,["DEAD","IMMUNE","RECOVERED","SUSCEPTIBLE","EXPOSED","ASYMPTOTIC","SERIOUSLY","CRITICAL"])
+        print(len(timeseries))#
+        lines = plt.plot([k-j-FRAMES_COUNT for k in range(len(timeseries))],[timeseries[k]+timeseries2[k] for k in range(len(timeseries)) ])
+        for l in lines[:8]:
+            l.set_linestyle('dashed')
+        plt.legend(lines,["DEAD","IMMUNE","RECOVERED","SUSCEPTIBLE","EXPOSED","ASYMPTOTIC","SERIOUSLY","CRITICAL","DEAD(R)","IMMUNE(R)","RECOVERED(R)","SUSCEPTIBLE(R)","EXPOSED(R)","ASYMPTOTIC(R)","SERIOUSLY(R)","CRITICAL(R)"])
         # adjust the main plot to make room for the sliders
         plt.subplots_adjust(left=0.25, bottom=0.25)
 
